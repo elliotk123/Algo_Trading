@@ -1,23 +1,20 @@
-//+------------------------------------------------------------------+
-//|                                                      ProjectName |
-//|                                      Copyright 2018, CompanyName |
-//|                                       http://www.companyname.net |
-//+------------------------------------------------------------------+
-#property copyright "Copyright 2018, anddycabrera@gmail.com."
-#property link      "https://www.mql5.com/en/users/waygrow"
-#property version   "1.00"
-#property strict
-//+------------------------------------------------------------------+
-//| Expert initialization function                                   |
-//+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>        //include the library for execution of trades
 #include <Trade\PositionInfo.mqh> //include the library for obtaining information on positions
 #include "../../Include/DeepNeuralNetwork.mqh"
 
-int numInput=4;
-int numHiddenA = 4;
-int numHiddenB = 4;
-int numOutput=3;
+// NN shape
+const int numInput=4;
+const int numHiddenA = 4;
+const int numHiddenB = 4;
+const int numOutput=3;
+
+// Trade Settings 
+const string symbol = "GBPUSD"
+const ENUM_TIMEFRAMES timeframe_low = PERIOD_H1; // variable for storing the low time frame
+const ENUM_TIMEFRAMES timeframe_High = PERIOD_D1; // variable for storing the low time frame
+const double lots = 0.01;
+const long order_magic=55555;//MagicNumber
+
 
 DeepNeuralNetwork dnn(numInput,numHiddenA,numHiddenB,numOutput);
 
@@ -84,18 +81,9 @@ input double b9=1.0;
 input double b10=1.0;
 input double b11=1.0;
 
-input double Lot=0.1;
-
-input long order_magic=55555;//MagicNumber
-
-double            _xValues[4];   // array for storing inputs
+double            _xValues[numInput];   // array for storing inputs
 double            weight[55];   // array for storing weights
-
-double            out;          // variable for storing the output of the neuron
-
-string            my_symbol;    // variable for storing the symbol
-ENUM_TIMEFRAMES   my_timeframe; // variable for storing the time frame
-double            lot_size;     // variable for storing the minimum lot size of the transaction to be performed
+double            _yValues[numOutput]; // array
 
 CTrade            m_Trade;      // entity for execution of trades
 CPositionInfo     m_Position;   // entity for obtaining information on positions
@@ -104,71 +92,73 @@ CPositionInfo     m_Position;   // entity for obtaining information on positions
 //+------------------------------------------------------------------+
 int OnInit()
   {
-   my_symbol=Symbol();
-   my_timeframe=PERIOD_CURRENT;
-   lot_size=Lot;
-   m_Trade.SetExpertMagicNumber(order_magic);
+  if !SymbolExist(symbol)
+  {
+    Print("Symbol: " + symbol + " does not exist!");
+    return(-1);
+  }
+  m_Trade.SetExpertMagicNumber(order_magic);
 
-   weight[0]=w0;
-   weight[1]=w1;
-   weight[2]=w2;
-   weight[3]=w3;
-   weight[4]=w4;
-   weight[5]=w5;
-   weight[6]=w6;
-   weight[7]=w7;
-   weight[8]=w8;
-   weight[9]=w9;
-   weight[10]=w10;
-   weight[11]=w11;
-   weight[12]=w12;
-   weight[13]=w13;
-   weight[14]=w14;
-   weight[15]=w15;
+  weight[0]=w0;
+  weight[1]=w1;
+  weight[2]=w2;
+  weight[3]=w3;
+  weight[4]=w4;
+  weight[5]=w5;
+  weight[6]=w6;
+  weight[7]=w7;
+  weight[8]=w8;
+  weight[9]=w9;
+  weight[10]=w10;
+  weight[11]=w11;
+  weight[12]=w12;
+  weight[13]=w13;
+  weight[14]=w14;
+  weight[15]=w15;
 
-   weight[16]=b0;
-   weight[17]=b1;
-   weight[18]=b2;
-   weight[19]=b3;
+  weight[16]=b0;
+  weight[17]=b1;
+  weight[18]=b2;
+  weight[19]=b3;
 
-   weight[20]=w40;
-   weight[21]=w41;
-   weight[22]=w42;
-   weight[23]=w43;
-   weight[24]=w44;
-   weight[25]=w45;
-   weight[26]=w46;
-   weight[27]=w47;
-   weight[28]=w48;
-   weight[29]=w49;
-   weight[30]=w50;
-   weight[31]=w51;
-   weight[32]=w52;
-   weight[33]=w53;
-   weight[34]=w54;
-   weight[35]=w55;
+  weight[20]=w40;
+  weight[21]=w41;
+  weight[22]=w42;
+  weight[23]=w43;
+  weight[24]=w44;
+  weight[25]=w45;
+  weight[26]=w46;
+  weight[27]=w47;
+  weight[28]=w48;
+  weight[29]=w49;
+  weight[30]=w50;
+  weight[31]=w51;
+  weight[32]=w52;
+  weight[33]=w53;
+  weight[34]=w54;
+  weight[35]=w55;
 
-   weight[36]=b4;
-   weight[37]=b5;
-   weight[38]=b6;
-   weight[39]=b7;
+  weight[36]=b4;
+  weight[37]=b5;
+  weight[38]=b6;
+  weight[39]=b7;
 
-   weight[40]=w60;
-   weight[41]=w61;
-   weight[42]=w62;
-   weight[43]=w63;
-   weight[44]=w64;
-   weight[45]=w65;
-   weight[46]=w66;
-   weight[47]=w67;
-   weight[48]=w68;
-   weight[49]=w69;
-   weight[50]=w70;
-   weight[51]=w71;
+  weight[40]=w60;
+  weight[41]=w61;
+  weight[42]=w62;
+  weight[43]=w63;
+  weight[44]=w64;
+  weight[45]=w65;
+  weight[46]=w66;
+  weight[47]=w67;
+  weight[48]=w68;
+  weight[49]=w69;
+  weight[50]=w70;
+  weight[51]=w71;
 
-   weight[52]=b9;
-   weight[53]=b10;
-   weight[54]=b11;
+  weight[52]=b9;
+  weight[53]=b10;
+  weight[54]=b11;
 
 
 //--- return 0, initialization complete
@@ -186,46 +176,29 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
   {
-
-   MqlRates rates[];
-   ArraySetAsSeries(rates,true);
-   int copied=CopyRates(_Symbol,0,1,5,rates);
-
-//compute the percent of the upper shadow, lower shadow and body in base of sum 100%
-   int error=CandlePatterns(rates[0].high,rates[0].low,rates[0].open,rates[0].close,rates[0].close-rates[0].open,_xValues);
-
-   if(error<0)return;
-
    dnn.SetWeights(weight);
+   dnn.ComputeOutputs(_xValues,_yValues);
+   int max_out = ArrayMaximum(_yValues);
 
-   double yValues[];
-   dnn.ComputeOutputs(_xValues,yValues);
-
-//--- if the output value of the neuron is mare than 60%
-   if(yValues[0]>0.6)
-     {
-      if(m_Position.Select(my_symbol))//check if there is an open position
+   switch(max_out)
+      {
+      case 0: // Make a buy trade
+        if(m_Position.Select(symbol))//check if there is an open position
         {
-         if(m_Position.PositionType()==POSITION_TYPE_SELL) m_Trade.PositionClose(my_symbol);//Close the opposite position if exists
-         if(m_Position.PositionType()==POSITION_TYPE_BUY) return;
+          if(m_Position.PositionType()==POSITION_TYPE_SELL) m_Trade.PositionClose(symbol);//Close the opposite position if exists
+          if(m_Position.PositionType()==POSITION_TYPE_BUY) return;
         }
-      m_Trade.Buy(lot_size,my_symbol);//open a Long position
-     }
-//--- if the output value of the neuron is mare than 60%
-   if(yValues[1]>0.6)
-     {
-      if(m_Position.Select(my_symbol))//check if there is an open position
+        m_Trade.Buy(lots,symbol);//open a Long position  
+        break;
+      case 1: // Do nothing
+        break;
+      case 2: // Close a buy trade
+        if(m_Position.Select(symbol))//check if there is an open position
         {
-         if(m_Position.PositionType()==POSITION_TYPE_BUY) m_Trade.PositionClose(my_symbol);//Close the opposite position if exists
-         if(m_Position.PositionType()==POSITION_TYPE_SELL) return;
+          if(m_Position.PositionType()==POSITION_TYPE_BUY) m_Trade.PositionClose(symbol);//Close the opposite position if exists
+          if(m_Position.PositionType()==POSITION_TYPE_SELL) return;
         }
-      m_Trade.Sell(lot_size,my_symbol);//open a Short position
-     }
-
-   if(yValues[2]>0.6)
-     {
-      m_Trade.PositionClose(my_symbol);//close any position
-
-     }
-
+      default: // Invalid inde
+        Print("Error calculating maximum output from NN");
+      }
   }
