@@ -10,11 +10,10 @@ const int numOutput=3;
 
 // Trade Settings 
 const string symbol = "GBPUSD"
-const ENUM_TIMEFRAMES timeframe_low = PERIOD_H1; // variable for storing the low time frame
+const ENUM_TIMEFRAMES timeframe_low = PERIOD_M15; // variable for storing the low time frame
 const ENUM_TIMEFRAMES timeframe_High = PERIOD_D1; // variable for storing the low time frame
 const double lots = 0.01;
 const long order_magic=55555;//MagicNumber
-
 
 DeepNeuralNetwork dnn(numInput,numHiddenA,numHiddenB,numOutput);
 
@@ -81,9 +80,12 @@ input double b9=1.0;
 input double b10=1.0;
 input double b11=1.0;
 
-double            _xValues[numInput];   // array for storing inputs
+double            _xValues[4];   // array for storing inputs
 double            weight[55];   // array for storing weights
 double            _yValues[numOutput]; // array
+
+int low_handle;
+int high_handle;
 
 CTrade            m_Trade;      // entity for execution of trades
 CPositionInfo     m_Position;   // entity for obtaining information on positions
@@ -160,6 +162,9 @@ int OnInit()
   weight[53]=b10;
   weight[54]=b11;
 
+  low_handle = iStochastic(symbol,timeframe_low,5,3,3,MODE_SMA,STO_LOWHIGH);
+  high_handle = iStochastic(symbol,timeframe_high,5,3,3,MODE_SMA,STO_LOWHIGH);
+
 
 //--- return 0, initialization complete
    return(0);
@@ -171,12 +176,30 @@ void OnDeinit(const int reason)
   {
 
   }
+
+void fill_Input() {
+   float k_array_low[];
+   float k_array_high[];
+   float d_array_low[];
+   float d_array_high[];
+
+   CopyBuffer(low_handle, 0, 0, 1, k_array_low)
+   int       indicator_handle,     // indicator handle
+   int       buffer_num,           // indicator buffer number
+   int       start_pos,            // start position
+   int       count,                // amount to copy
+   double    buffer[]              // target array to copy
+   );
+}
+
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
 //+------------------------------------------------------------------+
 void OnTick()
   {
+   int handle=iStochastic(symbol,timeframe_low,5,3,3,MODE_SMA,STO_LOWHIGH);
    dnn.SetWeights(weight);
+   _xValues[0] = 
    dnn.ComputeOutputs(_xValues,_yValues);
    int max_out = ArrayMaximum(_yValues);
 
