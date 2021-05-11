@@ -9,9 +9,9 @@ const int numHiddenB = 4;
 const int numOutput=3;
 
 // Trade Settings 
-const string symbol = "GBPUSD"
+const string symbol = "GBPUSD";
 const ENUM_TIMEFRAMES timeframe_low = PERIOD_M15; // variable for storing the low time frame
-const ENUM_TIMEFRAMES timeframe_High = PERIOD_D1; // variable for storing the low time frame
+const ENUM_TIMEFRAMES timeframe_high = PERIOD_D1; // variable for storing the low time frame
 const double lots = 0.01;
 const long order_magic=55555;//MagicNumber
 
@@ -82,7 +82,7 @@ input double b11=1.0;
 
 double            _xValues[4];   // array for storing inputs
 double            weight[55];   // array for storing weights
-double            _yValues[numOutput]; // array
+double            _yValues[3]; // array
 
 int low_handle;
 int high_handle;
@@ -92,12 +92,12 @@ CPositionInfo     m_Position;   // entity for obtaining information on positions
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int OnInit()
-  {
-  if !SymbolExist(symbol)
+int OnInit() {
+  bool isCustom = false;
+  if (!SymbolExist(symbol, isCustom))
   {
     Print("Symbol: " + symbol + " does not exist!");
-    return(-1);
+    return -1;
   }
   m_Trade.SetExpertMagicNumber(order_magic);
 
@@ -167,8 +167,8 @@ int OnInit()
 
 
 //--- return 0, initialization complete
-   return(0);
-  }
+   return 0;
+}
 //+------------------------------------------------------------------+
 //| Expert deinitialization function                                 |
 //+------------------------------------------------------------------+
@@ -177,51 +177,54 @@ void OnDeinit(const int reason)
 
   }
 
-void fill_Input() {
-   float k_array_low[];
-   float k_array_high[];
-   float d_array_low[];
-   float d_array_high[];
+void fill_input() {
+  double k_array_low[];
+  double k_array_high[];
+  double d_array_low[];
+  double d_array_high[];
 
-   CopyBuffer(low_handle, 0, 0, 1, k_array_low)
-   int       indicator_handle,     // indicator handle
-   int       buffer_num,           // indicator buffer number
-   int       start_pos,            // start position
-   int       count,                // amount to copy
-   double    buffer[]              // target array to copy
-   );
+  CopyBuffer(low_handle, 0, 0, 1, k_array_low);
+  CopyBuffer(low_handle, 1, 0, 1, k_array_low);
+  CopyBuffer(high_handle, 0, 0, 1, d_array_high);
+  CopyBuffer(low_handle, 1, 0, 1, d_array_high);
+
+  _xValues[0] = k_array_low[0]; 
+  _xValues[1] = d_array_low[0];
+  _xValues[2] = k_array_high[0];
+  _xValues[3] = d_array_high[0];
 }
 
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
 //+------------------------------------------------------------------+
-void OnTick()
-  {
-   int handle=iStochastic(symbol,timeframe_low,5,3,3,MODE_SMA,STO_LOWHIGH);
-   dnn.SetWeights(weight);
-   _xValues[0] = 
-   dnn.ComputeOutputs(_xValues,_yValues);
-   int max_out = ArrayMaximum(_yValues);
+void OnTick() {
+  fill_input();
+  dnn.SetWeights(weight);
+  dnn.ComputeOutputs(_xValues,_yValues);
+  int max_out = ArrayMaximum(_yValues);
 
-   switch(max_out)
+  switch(max_out) {
+    case 0: // Make a buy trade
+      if(m_Position.Select(symbol))//check if there is an open position
       {
-      case 0: // Make a buy trade
-        if(m_Position.Select(symbol))//check if there is an open position
-        {
-          if(m_Position.PositionType()==POSITION_TYPE_SELL) m_Trade.PositionClose(symbol);//Close the opposite position if exists
-          if(m_Position.PositionType()==POSITION_TYPE_BUY) return;
-        }
-        m_Trade.Buy(lots,symbol);//open a Long position  
-        break;
-      case 1: // Do nothing
-        break;
-      case 2: // Close a buy trade
-        if(m_Position.Select(symbol))//check if there is an open position
-        {
-          if(m_Position.PositionType()==POSITION_TYPE_BUY) m_Trade.PositionClose(symbol);//Close the opposite position if exists
-          if(m_Position.PositionType()==POSITION_TYPE_SELL) return;
-        }
-      default: // Invalid inde
-        Print("Error calculating maximum output from NN");
+        if(m_Position.PositionType()==POSITION_TYPE_SELL) m_Trade.PositionClose(symbol);//Close the opposite position if exists
+        if(m_Position.PositionType()==POSITION_TYPE_BUY) return;
       }
+      m_Trade.Buy(lots,symbol);//open a Long position  
+      PrintFormat("BUY %f lots from %s", lots, symbol);
+      break;
+    case 1: // Do nothing
+      break;
+    case 2: // Close a buy trade
+      if(m_Position.Select(symbol))//check if there is an open position
+      {
+        if(m_Position.PositionType()==POSITION_TYPE_BUY) {
+          m_Trade.PositionClose(symbol);//Close the buy position if exists
+          Print("Close BUY from " + symbol);
+        } 
+        else if(m_Position.PositionType()==POSITION_TYPE_SELL) return;
+      }
+    default: // Invalid inde
+      Print("Error calculating maximum output from NN");
   }
+}
