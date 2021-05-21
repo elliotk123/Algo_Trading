@@ -14,6 +14,8 @@ const ENUM_TIMEFRAMES timeframe_low = PERIOD_M15; // variable for storing the lo
 const ENUM_TIMEFRAMES timeframe_high = PERIOD_D1; // variable for storing the low time frame
 const double lots = 0.01;
 const long order_magic=55555;//MagicNumber
+const double stop_loss = 0.01;
+const double take_profit = 0.02;
 
 DeepNeuralNetwork dnn(numInput,numHiddenA,numHiddenB,numOutput);
 
@@ -184,9 +186,9 @@ void fill_input() {
   double d_array_high[];
 
   CopyBuffer(low_handle, 0, 0, 1, k_array_low);
-  CopyBuffer(low_handle, 1, 0, 1, k_array_low);
-  CopyBuffer(high_handle, 0, 0, 1, d_array_high);
-  CopyBuffer(low_handle, 1, 0, 1, d_array_high);
+  CopyBuffer(low_handle, 1, 0, 1, d_array_low);
+  CopyBuffer(high_handle, 0, 0, 1, k_array_high);
+  CopyBuffer(high_handle, 1, 0, 1, d_array_high);
 
   _xValues[0] = k_array_low[0]; 
   _xValues[1] = d_array_low[0];
@@ -198,6 +200,12 @@ void fill_input() {
 //| Expert tick function                                             |
 //+------------------------------------------------------------------+
 void OnTick() {
+   // Setup take profit and stop loss
+   MqlTick Latest_Price; // Structure to get the latest prices      
+   SymbolInfoTick(symbol ,Latest_Price); // Assign current prices to structure 
+   double stop_loss_price = Latest_Price.bid*(1-stop_loss);
+   double take_profit_price = Latest_Price.bid*(1+take_profit);
+
   fill_input();
   dnn.SetWeights(weight);
   dnn.ComputeOutputs(_xValues,_yValues);
@@ -210,7 +218,7 @@ void OnTick() {
         if(m_Position.PositionType()==POSITION_TYPE_SELL) m_Trade.PositionClose(symbol);//Close the opposite position if exists
         if(m_Position.PositionType()==POSITION_TYPE_BUY) return;
       }
-      m_Trade.Buy(lots,symbol);//open a Long position  
+      m_Trade.Buy(lots,symbol, 0.0, stop_loss_price, take_profit_price);//open a Long position  
       PrintFormat("BUY %f lots from %s", lots, symbol);
       break;
     case 1: // Do nothing
