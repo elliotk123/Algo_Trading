@@ -14,8 +14,8 @@ const ENUM_TIMEFRAMES timeframe_low = PERIOD_M15; // variable for storing the lo
 const ENUM_TIMEFRAMES timeframe_high = PERIOD_D1; // variable for storing the low time frame
 const double lots = 0.01;
 const long order_magic=55555;//MagicNumber
-const double stop_loss = 0.01;
-const double take_profit = 0.02;
+const double stop_loss = 0.005;
+const double take_profit = 0.01;
 
 DeepNeuralNetwork dnn(numInput,numHiddenA,numHiddenB,numOutput);
 
@@ -190,10 +190,10 @@ void fill_input() {
   CopyBuffer(high_handle, 0, 0, 1, k_array_high);
   CopyBuffer(high_handle, 1, 0, 1, d_array_high);
 
-  _xValues[0] = k_array_low[0]; 
-  _xValues[1] = d_array_low[0];
-  _xValues[2] = k_array_high[0];
-  _xValues[3] = d_array_high[0];
+  _xValues[0] = 0.01*k_array_low[0]; 
+  _xValues[1] = 0.01*d_array_low[0];
+  _xValues[2] = 0.01*k_array_high[0];
+  _xValues[3] = 0.01*d_array_high[0];
 }
 
 //+------------------------------------------------------------------+

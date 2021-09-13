@@ -1,0 +1,4 @@
+void OnTick()
+{
+   Print("Hello");
+}
