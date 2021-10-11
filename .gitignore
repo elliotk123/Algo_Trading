@@ -1,4 +1,5 @@
 legacy/*
 *.ex5
+*.ex4
 *.log
 *.xml
